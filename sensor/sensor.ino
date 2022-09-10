@@ -519,20 +519,31 @@ void handleBytes(uint8_t buf[], size_t len) {
                 Serial.printf("Sent target temp data %f\n", tubTargetTemp);
               }
               else {
-                if (tubTemp != tmp) {
-                  tubTemp = tmp;
+//                if (tubTemp != tmp) {
+//                  tubTemp = tmp;
+//                  temp.setValue(tubTemp);
+//                  Serial.printf("Sent temp data %f\n", tubTemp);
+//                }
+
+                if(result.substring(32, 34) != "ff") {
+                  // Temperature reading after timestamp, read in hex fahrenheit
+                  tubTemp = (strtol(result.substring(32, 34).c_str(), NULL, 16)-32)*.55556;
+                  
+      
+                  if(heaterState && (tubTemp < tubTargetTemp)) {
+                    double tempDiff = (tubTargetTemp - tubTemp);
+                    String timeToTempMsg =  (String) (tempDiff * MINUTES_PER_DEGC);
+                    timeToTemp.setValue(timeToTempMsg.c_str());
+                  }
+                  else {
+                    timeToTemp.setValue("");
+                  }
+      
+                  tubTemp = round(tubTemp * 10)/10;
                   temp.setValue(tubTemp);
-                  Serial.printf("Sent temp data %f\n", tubTemp);
+  
                 }
-                if(heaterState && (tubTemp < tubTargetTemp)) {
-                  double tempDiff = (tubTargetTemp - tubTemp);
-                  String timeToTempMsg =  (String) (tempDiff * MINUTES_PER_DEGC);
-                  timeToTempMsg += " mins"; 
-                  timeToTemp.setValue(timeToTempMsg.c_str());  
-                }
-                else {
-                  timeToTemp.setValue("");
-                }
+                
               }
             }
             else if (result.substring(10, 12) == "2d") { // "-"
