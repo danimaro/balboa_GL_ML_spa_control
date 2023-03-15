@@ -1,8 +1,6 @@
 // If connect to serial port over TCP, define the following
 // #define SERIAL_OVER_IP_ADDR "192.168.178.131"
 
-#define WDT_TIMEOUT 30
-
 // #define AP_FALLBACK
 
 #define WDT_TIMEOUT 30
@@ -69,10 +67,9 @@ WiFiClient tub = clients[1];
 SoftwareSerial tub;
 #define RX_PIN D6
 #define TX_PIN D7
-#endif
-#ifdef MAX485
 #define RTS_PIN D1 // RS485 direction control, RequestToSend TX or RX, required for MAX485 board.
 #endif
+
 #endif
 
 HADevice device(mac, sizeof(mac));
@@ -166,8 +163,8 @@ void setup() {
       Serial.print("AP IP address: ");
       Serial.println(myIP);
     #else
-      Serial.print("\n\nWifi failed, reboot\n");
-      delay(1000);
+      Serial.print("\n\nWifi failed, will reboot\n");
+      delay(10000);
       ESP.restart();
     #endif     
   }
@@ -332,10 +329,12 @@ void loop() {
   webserver.handleClient();
   webSocket.loop();
 
-  String json = getStatusJSON();
-  if (json != lastJSON) {
-    webSocket.broadcastTXT(json);
-    lastJSON = json;
+  if(webSocket.connectedClients() > 0) {
+    String json = getStatusJSON();
+    if (json != lastJSON) {
+      webSocket.broadcastTXT(json);
+      lastJSON = json;
+    }
   }
 
   if (((millis() / 1000) - lastUptime) >= 30) {
@@ -348,7 +347,8 @@ void loop() {
 
 void handleBytes(uint8_t buf[], size_t len) {
   for (int i = 0; i < len; i++) {
-    if (String(buf[i], HEX) == "fa" || String(buf[i], HEX) == "ae" || String(buf[i], HEX) == "ca") { // || String(buf[i], HEX) == "fb"
+    String hexValue = String(buf[i], HEX);
+    if (hexValue == "fa" || hexValue == "ae" || hexValue == "ca") { // || hexValue == "fb"
 
       // next byte is start of new message, so process what we have in result buffer
 
@@ -641,7 +641,7 @@ void handleBytes(uint8_t buf[], size_t len) {
     if (buf[i] < 0x10) {
       result += '0';
     }
-    result += String(buf[i], HEX);
+    result += hexValue;
   }
 }
 
